@@ -7,9 +7,10 @@ import { ApolloServer } from 'apollo-server-express';
 import { buildSchema } from 'type-graphql';
 
 import { __prod__ } from './constants';
-import { Post } from './entities/post';
-import { HelloResolver } from './resolvers/hello';
-import { PostResolver } from './resolvers/post';
+import { Post } from '../src/entities/post';
+import { User } from '../src/entities/user';
+import { PostResolver } from '../src/resolvers/post';
+import { UserResolver } from '../src/resolvers/user';
 
 const main = async () => {
   // initializing the ORM for connection to the database and configurations
@@ -17,7 +18,7 @@ const main = async () => {
     migrations: {
       path: path.join(__dirname, '../migrations'),
     },
-    entities: [Post],
+    entities: [Post, User],
     type: 'postgresql',
     dbName: 'lireddit',
     user: 'postgres',
@@ -26,14 +27,14 @@ const main = async () => {
     debug: !__prod__,
   });
 
-  // calling the migrations to create the tables
+  // calling the migrator to create the tables
   await orm.getMigrator().up();
 
   // creating the express app for the server
   const app = express();
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
-      resolvers: [HelloResolver, PostResolver],
+      resolvers: [PostResolver, UserResolver],
       validate: false,
     }),
     context: () => ({ em: orm.em }),
