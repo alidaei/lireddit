@@ -8,8 +8,9 @@ import { buildSchema } from 'type-graphql';
 import { createClient } from 'redis';
 import session from 'express-session';
 import connectRedis from 'connect-redis';
+import cors from 'cors';
 
-import { __prod__ } from './constants';
+import { __prod__, COOKIE_NAME } from './constants';
 import { Post } from '../src/entities/post';
 import { User } from '../src/entities/user';
 import { PostResolver } from '../src/resolvers/post';
@@ -49,8 +50,15 @@ const main = async () => {
   app.set('trust proxy', 1);
 
   app.use(
+    cors({
+      credentials: true,
+      origin: 'http://localhost:3000',
+    })
+  );
+
+  app.use(
     session({
-      name: 'qid',
+      name: COOKIE_NAME,
       store: new RedisStore({ client: redisClient, disableTouch: true }),
       saveUninitialized: false,
       secret: 'qlflkefkeofklkflskfosfkokeflksss',
@@ -58,8 +66,8 @@ const main = async () => {
       cookie: {
         maxAge: 1000 * 60 * 60 * 24 * 365 * 10, // 10 years
         httpOnly: true,
-        sameSite: 'none', // csrf
-        secure: true, // cookie only works in https
+        sameSite: 'lax', // csrf
+        secure: false, // cookie only works in https
       },
     })
   );
@@ -78,7 +86,7 @@ const main = async () => {
     app,
     cors: {
       credentials: true,
-      origin: ['https://studio.apollographql.com', 'http://localhost:3000'],
+      origin: 'http://localhost:3000',
     },
   });
 

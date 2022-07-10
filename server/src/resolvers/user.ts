@@ -12,6 +12,7 @@ import argon2 from 'argon2';
 
 import { User } from '../entities/user';
 import { MyContext } from './../types';
+import { COOKIE_NAME } from '../constants';
 
 @InputType()
 class UsernamePasswordInput {
@@ -55,7 +56,7 @@ export class UserResolver {
   @Mutation(() => UserResponse)
   async register(
     @Arg('options') options: UsernamePasswordInput,
-    @Ctx() { em }: MyContext
+    @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
     if (options.username.length <= 2) {
       return {
@@ -88,7 +89,7 @@ export class UserResolver {
       await em.persistAndFlush(user);
     } catch (error) {
       // duplicate username error
-      if (error.code === '23505') {
+      if (error.detail.includes('already exists')) {
         return {
           errors: [
             {
@@ -146,5 +147,22 @@ export class UserResolver {
     return {
       user,
     };
+  }
+
+  @Mutation(() => Boolean)
+  logout(@Ctx() { req, res }: MyContext) {
+    return new Promise((resolve) => {
+      // destroys the redis session
+      req.session.destroy((error) => {
+        if (error) {
+          console.log(error);
+          resolve(false);
+          return;
+        }
+
+        res.clearCookie(COOKIE_NAME);
+        resolve(true);
+      });
+    });
   }
 }
